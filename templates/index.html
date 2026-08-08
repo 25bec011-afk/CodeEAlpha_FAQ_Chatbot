@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="CodeAlpha AI Internship Task 2 - FAQ Chatbot using NLP, TF-IDF and cosine similarity.">
+  <title>FAQBot | CodeAlpha Task 2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="orb orb-a"></div><div class="orb orb-b"></div>
+
+  <header class="topbar">
+    <a class="brand" href="/"><span class="logo">?</span><span>FAQ<span>Bot</span></span></a>
+    <div class="badge"><span></span> NLP engine online</div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div class="eyebrow">CODEALPHA AI INTERNSHIP • TASK 2</div>
+      <h1>Ask anything.<br><span>Get the right FAQ answer.</span></h1>
+      <p>An intelligent FAQ chatbot that preprocesses questions, matches them with TF-IDF and cosine similarity, and returns the closest answer.</p>
+    </section>
+
+    <section class="chat-card">
+      <div class="chat-head">
+        <div class="bot-avatar">AI</div>
+        <div>
+          <strong>FAQ Assistant</strong>
+          <small>Powered by NLP similarity matching</small>
+        </div>
+        <div class="online">● Online</div>
+      </div>
+
+      <div id="chat" class="chat-window">
+        <div class="bubble bot">
+          <div class="bubble-label">FAQ Assistant</div>
+          Hi! 👋 Ask me a question about accounts, billing, support, privacy, security, or how this chatbot works.
+          <div class="suggestions">
+            <button onclick="askSuggestion(this)">How do I reset my password?</button>
+            <button onclick="askSuggestion(this)">How can I get a refund?</button>
+            <button onclick="askSuggestion(this)">How do I contact support?</button>
+          </div>
+        </div>
+      </div>
+
+      <form id="chatForm" class="input-area">
+        <input id="questionInput" autocomplete="off" maxlength="500" placeholder="Type your question here..." aria-label="Ask a question">
+        <button type="submit" id="sendBtn">Send <span>➤</span></button>
+      </form>
+      <div id="status" class="status"></div>
+    </section>
+
+    <section class="info-grid">
+      <article class="info-card">
+        <div class="info-icon">🧹</div>
+        <h3>1. NLP preprocessing</h3>
+        <p>Questions are lowercased and cleaned by removing URLs, punctuation, numbers and extra whitespace.</p>
+      </article>
+      <article class="info-card">
+        <div class="info-icon">🔢</div>
+        <h3>2. TF-IDF vectors</h3>
+        <p>The cleaned FAQ questions are converted into numerical TF-IDF representations using scikit-learn.</p>
+      </article>
+      <article class="info-card">
+        <div class="info-icon">🎯</div>
+        <h3>3. Similarity matching</h3>
+        <p>Cosine similarity finds the closest FAQ and a confidence threshold prevents weak matches.</p>
+      </article>
+    </section>
+
+    <section class="faq-section">
+      <div class="section-title">
+        <div class="eyebrow">KNOWLEDGE BASE</div>
+        <h2>Available FAQ categories</h2>
+      </div>
+      <div class="categories">
+        {% set shown = [] %}
+        {% for faq in faqs %}
+          {% if faq.category not in shown %}
+            {% set _ = shown.append(faq.category) %}
+            <span>{{ faq.category }}</span>
+          {% endif %}
+        {% endfor %}
+      </div>
+      <p class="note">Demo knowledge base contains {{ faqs|length }} sample FAQs. The dataset can be extended in <code>app.py</code>.</p>
+    </section>
+
+    <section class="project-card">
+      <div>
+        <div class="eyebrow">PROJECT INFORMATION</div>
+        <h2>Built for CodeAlpha Artificial Intelligence Internship</h2>
+        <p>Task 2 requirements are implemented using Flask, Python, scikit-learn, TF-IDF, cosine similarity and a responsive chat interface.</p>
+      </div>
+      <div class="stack"><span>Python</span><span>Flask</span><span>NLP</span><span>TF-IDF</span><span>Cosine Similarity</span></div>
+    </section>
+  </main>
+
+  <footer>
+    <strong>FAQBot</strong> • CodeAlpha AI Internship — Task 2<br>
+    FAQ matching demonstration using classical NLP techniques.
+  </footer>
+
+<script>
+const form = document.getElementById("chatForm");
+const input = document.getElementById("questionInput");
+const chat = document.getElementById("chat");
+const statusBox = document.getElementById("status");
+const sendBtn = document.getElementById("sendBtn");
+
+function escapeHtml(text) {
+  return String(text).replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[c]));
+}
+
+function addMessage(text, type, meta = "") {
+  const bubble = document.createElement("div");
+  bubble.className = `bubble ${type}`;
+  bubble.innerHTML = `${type === "bot" ? '<div class="bubble-label">FAQ Assistant</div>' : ""}
+    ${escapeHtml(text)}
+    ${meta ? `<div class="confidence">${escapeHtml(meta)}</div>` : ""}`;
+  chat.appendChild(bubble);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function askSuggestion(button) {
+  input.value = button.textContent;
+  form.requestSubmit();
+}
+
+form.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const question = input.value.trim();
+  if (!question) return;
+
+  addMessage(question, "user");
+  input.value = "";
+  sendBtn.disabled = true;
+  statusBox.textContent = "Finding the closest FAQ…";
+
+  try {
+    const response = await fetch("/api/ask", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({question})
+    });
+    const data = await response.json();
+
+    if (!response.ok) throw new Error(data.message || "Request failed.");
+
+    if (data.matched) {
+      addMessage(data.answer, "bot", `Matched: ${data.question} • Confidence: ${data.confidence}%`);
+    } else {
+      addMessage(data.answer, "bot", `No confident match • Best similarity: ${data.confidence}%`);
+    }
+    statusBox.textContent = "Ready for your next question.";
+  } catch (error) {
+    addMessage("Sorry, something went wrong while processing your question.", "bot");
+    statusBox.textContent = error.message;
+  } finally {
+    sendBtn.disabled = false;
+    input.focus();
+  }
+});
+</script>
+</body>
+</html>
