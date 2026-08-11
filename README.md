@@ -1,4 +1,12 @@
-# 🤖 FAQBot — CodeAlpha AI Internship Task 2
+# 🤖 CodeAlpha FAQ Chatbot
+
+## 🌐 Live Demo
+
+👉 [Open the Live FAQ Chatbot](https://codeealpha-faq-chatbot.onrender.com)
+
+## 📌 CodeAlpha Artificial Intelligence Internship — Task 2
+
+An AI-powered FAQ chatbot using NLP preprocessing, TF-IDF vectorization and cosine similarity.# 🤖 FAQBot — CodeAlpha AI Internship Task 2
 
 A complete FAQ chatbot that uses **NLP preprocessing, TF-IDF vectorization and cosine similarity** to match user questions with the most relevant FAQ and return an answer.
 
