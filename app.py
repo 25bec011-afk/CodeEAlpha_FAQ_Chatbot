@@ -130,34 +130,143 @@ vectorizer = TfidfVectorizer(
 faq_matrix = vectorizer.fit_transform(questions)
 
 def find_best_answer(user_question):
-    cleaned = preprocess(user_question)
+    cleaned = preprocess(user_question).strip().lower()
 
     if not cleaned:
-        return None, 0.0
+        return {
+            "question": "Empty message",
+            "answer": "Please type a question and I'll try to help you. 😊",
+            "category": "General"
+        }, 1.0
 
-    # Handle greetings
+    # =========================
+    # GREETINGS
+    # =========================
     greetings = {
-        "hi", "hello", "hey", "hii", "hiii",
-        "good morning", "good afternoon", "good evening"
+        "hi", "hii", "hiii", "hello", "hey", "heyy",
+        "good morning", "good afternoon", "good evening",
+        "good night"
     }
 
     if cleaned in greetings:
         return {
             "question": "Greeting",
-            "answer": "Hello! 👋 I'm FAQBot. How can I help you?",
+            "answer": "Hello! 👋 I'm FAQBot. How can I help you today?",
             "category": "General"
         }, 1.0
 
+    # =========================
+    # HOW ARE YOU
+    # =========================
+    if any(x in cleaned for x in [
+        "how are you",
+        "how r u",
+        "how are u",
+        "are you okay"
+    ]):
+        return {
+            "question": "How are you?",
+            "answer": "I'm doing great! 😊 Thanks for asking. How can I help you?",
+            "category": "General"
+        }, 1.0
+
+    # =========================
+    # THANK YOU
+    # =========================
+    if any(x in cleaned for x in [
+        "thank you",
+        "thanks",
+        "thank u",
+        "thx",
+        "thanks a lot"
+    ]):
+        return {
+            "question": "Thank you",
+            "answer": "You're very welcome! 😊 Feel free to ask me anything.",
+            "category": "General"
+        }, 1.0
+
+    # =========================
+    # GOODBYE
+    # =========================
+    if any(x in cleaned for x in [
+        "bye",
+        "goodbye",
+        "see you",
+        "see ya",
+        "talk to you later"
+    ]):
+        return {
+            "question": "Goodbye",
+            "answer": "Goodbye! 👋 Have a great day!",
+            "category": "General"
+        }, 1.0
+
+    # =========================
+    # HELP
+    # =========================
+    if any(x in cleaned for x in [
+        "help",
+        "help me",
+        "what can you do",
+        "how can you help",
+        "what do you do"
+    ]):
+        return {
+            "question": "Help",
+            "answer": (
+                "I can help you with frequently asked questions about "
+                "accounts, billing, support, privacy, security and other "
+                "topics available in my FAQ database. 🤖"
+            ),
+            "category": "Help"
+        }, 1.0
+
+    # =========================
+    # WHO ARE YOU
+    # =========================
+    if any(x in cleaned for x in [
+        "who are you",
+        "what are you",
+        "your name",
+        "what is your name"
+    ]):
+        return {
+            "question": "Who are you?",
+            "answer": (
+                "I'm FAQBot 🤖, an AI-powered FAQ chatbot designed to "
+                "answer frequently asked questions quickly."
+            ),
+            "category": "General"
+        }, 1.0
+
+    # =========================
+    # EXISTING FAQ SEARCH
+    # =========================
     user_vector = vectorizer.transform([cleaned])
     similarities = cosine_similarity(user_vector, faq_matrix)[0]
 
     best_index = similarities.argmax()
     score = float(similarities[best_index])
 
-    if score < CONFIDENCE_THRESHOLD:
-        return None, score
+    # =========================
+    # GOOD MATCH
+    # =========================
+    if score >= CONFIDENCE_THRESHOLD:
+        return FAQS[best_index], score
 
-    return FAQS[best_index], score
+    # =========================
+    # LOW CONFIDENCE FALLBACK
+    # =========================
+    return {
+        "question": user_question,
+        "answer": (
+            "I'm sorry, I don't have a specific answer for that yet. 😕 "
+            "Try asking about accounts, billing, support, privacy, "
+            "security, or another topic from the FAQ."
+        ),
+        "category": "General"
+    }, score
 
 @app.route("/")
 def home():
