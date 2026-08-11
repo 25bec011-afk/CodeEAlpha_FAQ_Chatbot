@@ -131,11 +131,26 @@ faq_matrix = vectorizer.fit_transform(questions)
 
 def find_best_answer(user_question):
     cleaned = preprocess(user_question)
+
     if not cleaned:
         return None, 0.0
 
+    # Handle greetings
+    greetings = {
+        "hi", "hello", "hey", "hii", "hiii",
+        "good morning", "good afternoon", "good evening"
+    }
+
+    if cleaned in greetings:
+        return {
+            "question": "Greeting",
+            "answer": "Hello! 👋 I'm FAQBot. How can I help you?",
+            "category": "General"
+        }, 1.0
+
     user_vector = vectorizer.transform([cleaned])
     similarities = cosine_similarity(user_vector, faq_matrix)[0]
+
     best_index = similarities.argmax()
     score = float(similarities[best_index])
 
